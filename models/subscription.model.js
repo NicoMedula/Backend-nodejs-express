@@ -14,13 +14,13 @@ const subscriptionSchema = new mongoose.Schema( {
         min : [0, "Price must be a positive number"],
         max : [1000, "Price must be less than 10000"]
     },
-    currancy : {
+    currency : {
         type : String,
         enum: ["USD", "EUR", "GBP"],
         default : "USD"
         },
 
-        frecuency : {
+        frequency : {
             type : String,
             enum : ["daily", "weekly", "monthly", "yearly"],
         },
@@ -50,7 +50,7 @@ const subscriptionSchema = new mongoose.Schema( {
         },
          renewalDate : {
             type : Date,
-            required : true,
+            
             validate : {
                 validator : function(value) {
                     return value > this.startDate;
@@ -78,7 +78,7 @@ subscriptionSchema.pre("save", function(next) {
         };
 
         this.renewalDate = new Date(this.startDate);
-        this.renewalDate.setDate(this.renewalDate.getDate() + renewalPeriods[this.frecuency]);
+        this.renewalDate.setDate(this.renewalDate.getDate() + renewalPeriods[this.frequency]);
        
     }
 
@@ -86,7 +86,7 @@ subscriptionSchema.pre("save", function(next) {
         this.status = "expired";
 
     }
-    next();
+    //next();
 
     });
 
