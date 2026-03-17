@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -14,7 +15,8 @@ async function main() {
     });
     console.log(`Admin role confirmed for ${ADMIN_EMAIL}`);
   } else {
-    const hashedPassword = await bcrypt.hash('changeme123', 10);
+    const randomPassword = crypto.randomBytes(24).toString('base64url');
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
     await prisma.user.create({
       data: {
         email: ADMIN_EMAIL,
@@ -28,10 +30,9 @@ async function main() {
         },
       },
     });
-    console.log(`Admin created: ${ADMIN_EMAIL} (password: changeme123 — change it!)`);
+    console.log(`Admin created: ${ADMIN_EMAIL} (use Google OAuth or forgot-password to set password)`);
   }
 
-  // Ensure no other user is admin
   await prisma.profile.updateMany({
     where: {
       role: 'admin',

@@ -1,5 +1,23 @@
 import prisma from '../database/prisma.js';
 
+const sanitizeForStudents = (cred) => ({
+  id: cred.id,
+  name: cred.name,
+  description: cred.description,
+  emailOrUser: cred.emailOrUser,
+  passwordOrKey: cred.passwordOrKey,
+  icon: cred.icon,
+  orderIndex: cred.orderIndex,
+  isActive: cred.isActive,
+});
+
+const sanitizeForEvents = (cred) => ({
+  id: cred.id,
+  name: cred.name,
+  icon: cred.icon,
+  isActive: cred.isActive,
+});
+
 export const getCredentials = async (req, res, next) => {
   try {
     const isAdmin = req.user.profile.role === 'admin';
@@ -37,11 +55,17 @@ export const createCredential = async (req, res, next) => {
   try {
     const { name, description, emailOrUser, passwordOrKey, icon, orderIndex, isActive } = req.body;
 
+    if (!name || name.trim().length === 0) {
+      const error = new Error('Name is required');
+      error.statusCode = 400;
+      throw error;
+    }
+
     const credential = await prisma.credential.create({
-      data: { name, description, emailOrUser, passwordOrKey, icon, orderIndex, isActive },
+      data: { name: name.trim(), description, emailOrUser, passwordOrKey, icon, orderIndex, isActive },
     });
 
-    req.io?.emit('credential:created', credential);
+    req.io?.emit('credential:created', sanitizeForEvents(credential));
     res.status(201).json({ success: true, data: credential });
   } catch (error) {
     next(error);
@@ -57,7 +81,7 @@ export const updateCredential = async (req, res, next) => {
       data: { name, description, emailOrUser, passwordOrKey, icon, orderIndex, isActive },
     });
 
-    req.io?.emit('credential:updated', credential);
+    req.io?.emit('credential:updated', sanitizeForEvents(credential));
     res.status(200).json({ success: true, data: credential });
   } catch (error) {
     next(error);

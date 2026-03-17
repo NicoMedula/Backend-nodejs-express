@@ -24,6 +24,13 @@ authRouter.post('/forgot-password', forgotPassword);
 authRouter.post('/reset-password', resetPassword);
 authRouter.get('/me', authorize, getMe);
 
+authRouter.get('/oauth-token', (req, res) => {
+  const token = req.cookies?.hakia_oauth_token;
+  if (!token) return res.status(401).json({ success: false, error: 'No OAuth token' });
+  res.clearCookie('hakia_oauth_token');
+  res.json({ success: true, data: { token } });
+});
+
 authRouter.get(
   '/google',
   passport.authenticate('google', { scope: ['profile', 'email'], session: false })

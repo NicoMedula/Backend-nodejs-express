@@ -1,9 +1,10 @@
 import express from 'express';
 import { createServer } from 'node:http';
 import cors from 'cors';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import passport from './config/passport.js';
-import { PORT, FRONTEND_URL } from './config/env.js';
+import { PORT, FRONTEND_URL, NODE_ENV } from './config/env.js';
 import { initSocket } from './utils/socket.js';
 import arcjetMiddleware from './middlewares/arcjet.middleware.js';
 import errorMiddleware from './middlewares/error.middleware.js';
@@ -19,11 +20,14 @@ const app = express();
 const httpServer = createServer(app);
 const io = initSocket(httpServer);
 
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(cors({
   origin: FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(passport.initialize());

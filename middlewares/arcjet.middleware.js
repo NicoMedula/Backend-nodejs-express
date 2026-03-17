@@ -12,14 +12,17 @@ const arcjetMiddleware = async (req, res, next) => {
         return res.status(429).json({ success: false, error: 'Too Many Requests' });
       }
       if (decision.reason.isBot()) {
-        return res.status(403).json({ success: false, error: 'No bots allowed' });
+        return res.status(403).json({ success: false, error: 'Forbidden' });
       }
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
     next();
   } catch (error) {
-    console.error(`Arcjet middleware error: ${error}`);
+    console.error(`Arcjet error: ${error.message}`);
+    if (NODE_ENV === 'production') {
+      return next();
+    }
     next();
   }
 };

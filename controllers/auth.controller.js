@@ -18,13 +18,26 @@ export const signUp = async (req, res, next) => {
       throw error;
     }
 
-    if (password.length < 6) {
-      const error = new Error('Password must be at least 6 characters');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      const error = new Error('Invalid email format');
       error.statusCode = 400;
       throw error;
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    if (password.length < 6 || password.length > 128) {
+      const error = new Error('Password must be between 6 and 128 characters');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (name.trim().length < 2 || name.trim().length > 100) {
+      const error = new Error('Name must be between 2 and 100 characters');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     if (existing) {
       const error = new Error('Email already registered');
       error.statusCode = 409;
@@ -100,17 +113,6 @@ export const verifyEmail = async (req, res, next) => {
     });
 
     if (!user) {
-      const alreadyVerified = await prisma.user.findFirst({
-        where: { emailVerified: true, verificationToken: null },
-      });
-
-      if (alreadyVerified) {
-        return res.status(200).json({
-          success: true,
-          message: 'Email already verified! You can sign in.',
-        });
-      }
-
       const error = new Error('Invalid or expired verification token. Try requesting a new one.');
       error.statusCode = 400;
       throw error;
