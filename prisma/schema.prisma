@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  student
+  admin
+}
+
+enum CourseStatus {
+  active
+  draft
+  archived
+}
+
+enum MaterialType {
+  pdf
+  video
+  link
+  image
+  other
+}
+
+enum ForumCategory {
+  general
+  cursos
+  herramientas
+  proyectos
+  ayuda
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String?
+  googleId  String?  @unique @map("google_id")
+  provider            String    @default("local")
+  emailVerified       Boolean   @default(false) @map("email_verified")
+  verificationToken   String?   @map("verification_token")
+  resetToken          String?   @map("reset_token")
+  resetTokenExpiry    DateTime? @map("reset_token_expiry")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  profile     Profile?
+  enrollments CourseEnrollment[]
+  forumPosts  ForumPost[]
+  forumReplies ForumReply[]
+  courses     Course[]           @relation("CourseCreator")
+
+  @@map("users")
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  fullName    String   @map("full_name")
+  avatarUrl   String?  @map("avatar_url")
+  role        Role     @default(student)
+  description String?
+  occupation  String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Course {
+  id          String       @id @default(uuid())
+  title       String       @db.VarChar(100)
+  description String?
+  accessCode  String       @map("access_code") @db.VarChar(20)
+  status      CourseStatus @default(draft)
+  createdBy   String       @map("created_by")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  creator     User               @relation("CourseCreator", fields: [createdBy], references: [id])
+  enrollments CourseEnrollment[]
+  materials   CourseMaterial[]
+
+  @@map("courses")
+}
+
+model CourseEnrollment {
+  id         String   @id @default(uuid())
+  courseId   String   @map("course_id")
+  userId     String   @map("user_id")
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+  @@map("course_enrollments")
+}
+
+model CourseMaterial {
+  id         String       @id @default(uuid())
+  courseId   String       @map("course_id")
+  title      String       @db.VarChar(200)
+  type       MaterialType @default(other)
+  url        String
+  orderIndex Int          @default(0) @map("order_index")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("course_materials")
+}
+
+model Credential {
+  id            String   @id @default(uuid())
+  name          String   @db.VarChar(100)
+  description   String?
+  emailOrUser   String?  @map("email_or_user")
+  passwordOrKey String?  @map("password_or_key")
+  icon          String?
+  orderIndex    Int      @default(0) @map("order_index")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("credentials")
+}
+
+model ForumPost {
+  id        String        @id @default(uuid())
+  userId    String        @map("user_id")
+  title     String        @db.VarChar(200)
+  content   String
+  category  ForumCategory @default(general)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies ForumReply[]
+
+  @@map("forum_posts")
+}
+
+model ForumReply {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("forum_replies")
+}

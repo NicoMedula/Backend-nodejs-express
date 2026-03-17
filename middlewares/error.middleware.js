@@ -1,41 +1,28 @@
-// Create subscription --> middleware (check for renewal date) --> middleware (check for errors) --> next --> controller
+const errorMiddleware = (err, _req, res, _next) => {
+  console.error(err);
 
-const errorMiddleware = (err, req, res, next) => {
-    try {
-        let error = { ...err };
-        error.message = err.message;
+  const statusCode = err.statusCode || err.status || 500;
+  const message = err.message || 'Internal Server Error';
 
-        console.error(err);
+  if (err.code === 'P2002') {
+    const field = err.meta?.target?.join(', ') || 'field';
+    return res.status(409).json({
+      success: false,
+      error: `Duplicate value for: ${field}`,
+    });
+  }
 
-        //Mongoose bad ObjectId
-        if( err.name === "CastError"){
-            const message = 'Resource not found ';
-            error = new Error(message);
-            error.statusCode = 404;
-        }
+  if (err.code === 'P2025') {
+    return res.status(404).json({
+      success: false,
+      error: 'Record not found',
+    });
+  }
 
-        //Mongoose duplicated key
-        if (err.code === 11000) {
-            const message = "Duplicate field value entered";
-            error = new Error(message);
-            error.statusCode = 400;
-        }
-
-        //Mongoose validation error
-        if (err.name === "ValidationError") {
-            const message = Object.values(err.errors).map(val => val.message);
-            error = new Error(message.join(", "));
-            error.statusCode = 400;
-        }
-
-        res.status(error.statusCode || 500).json({
-            success : false,
-            error : error.message || "Server Error"
-        });
-
-    }catch (error) {
-        next(error);
-    }
-}
+  res.status(statusCode).json({
+    success: false,
+    error: message,
+  });
+};
 
 export default errorMiddleware;

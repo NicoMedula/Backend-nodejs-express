@@ -1,14 +1,22 @@
-import nodemailer from "nodemailer";
-import { EMAIL_PASSWORD } from "./env.js";
+import nodemailer from 'nodemailer';
+import { EMAIL_PASSWORD } from './env.js';
 
-export const accountEmail = 'alphasoftwebs@gmail.com'
+export const accountEmail = 'alphasoftwebs@gmail.com';
 
-const trasporter = nodemailer.createTransport({
- service: "gmail",
-    auth: {
-        user: accountEmail,
-        pass: EMAIL_PASSWORD
-    }
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: accountEmail,
+    pass: EMAIL_PASSWORD,
+  },
 });
 
-export default trasporter;
+transporter.verify((error) => {
+  if (error) {
+    console.error('SMTP connection failed:', error.message);
+  } else {
+    console.log('SMTP server ready to send emails');
+  }
+});
+
+export default transporter;

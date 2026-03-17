@@ -1,42 +1,55 @@
 import express from 'express';
-import {PORT} from './config/env.js';
-import userRouter from './routes/user.routes.js';
-import subscriberRouter from './routes/subscription.routes.js';
-import authRouter from './routes/auth.routes.js';
-import connectToDatabase from './database/mongodb.js';
-import errorMiddleware from './middlewares/error.middleware.js';
+import { createServer } from 'node:http';
+import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import passport from './config/passport.js';
+import { PORT, FRONTEND_URL } from './config/env.js';
+import { initSocket } from './utils/socket.js';
 import arcjetMiddleware from './middlewares/arcjet.middleware.js';
-import workflowRouter from './routes/workflow.routes.js';
-
-
-
+import errorMiddleware from './middlewares/error.middleware.js';
+import authRouter from './routes/auth.routes.js';
+import courseRouter from './routes/course.routes.js';
+import credentialRouter from './routes/credential.routes.js';
+import forumRouter from './routes/forum.routes.js';
+import profileRouter from './routes/profile.routes.js';
+import uploadRouter from './routes/upload.routes.js';
+import statsRouter from './routes/stats.routes.js';
 
 const app = express();
+const httpServer = createServer(app);
+const io = initSocket(httpServer);
 
+app.use(cors({
+  origin: FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+}));
 app.use(express.json());
-app.use(express.urlencoded({extended : true}));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(passport.initialize());
 app.use(arcjetMiddleware);
 
-app.use('/api/v1/users', userRouter);
-app.use('/api/v1/subscriptions', subscriberRouter);
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/workflows', workflowRouter);
-app.use(errorMiddleware);
-
-
-
-
-app.get('/', (req, res) => {
-    res.send('Hello World!');
+app.use((req, _res, next) => {
+  req.io = io;
+  next();
 });
 
+app.get('/', (_req, res) => {
+  res.json({ message: 'Hakia Platform API v1' });
+});
 
-app.listen(PORT, async () => {
-    console.log(`Example app listening on port http://localhost:${PORT}`);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/courses', courseRouter);
+app.use('/api/v1/credentials', credentialRouter);
+app.use('/api/v1/forum', forumRouter);
+app.use('/api/v1/profile', profileRouter);
+app.use('/api/v1/upload', uploadRouter);
+app.use('/api/v1/stats', statsRouter);
 
-    await connectToDatabase();
+app.use(errorMiddleware);
+
+httpServer.listen(PORT, () => {
+  console.log(`Hakia API running on http://localhost:${PORT}`);
 });
 
 export default app;
